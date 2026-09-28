@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LogOut, Inbox, CalendarCheck, CheckCircle2, LayoutGrid, Loader2, MessageCircle,
-  Phone, Mail, X, ImageIcon, MapPin, RefreshCw,
+  Phone, Mail, X, ImageIcon, MapPin, RefreshCw, DollarSign, Copy, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
@@ -11,8 +11,10 @@ import api, { API } from "@/lib/api";
 
 const STATUS_META = {
   new: { label: "New", cls: "bg-glow-purple/20 text-glow-soft border-glow-purple/40" },
+  approved: { label: "Approved", cls: "bg-sky-500/15 text-glow-soft border-glow-purple/30" },
   scheduled: { label: "Scheduled", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   "in-progress": { label: "In Progress", cls: "bg-purple-400/15 text-purple-200 border-purple-400/30" },
+  paid: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   completed: { label: "Completed", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
 };
 const STATUS_FLOW = ["new", "scheduled", "in-progress", "completed"];
@@ -38,6 +40,8 @@ const AdminDashboard = () => {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("USD");
 
   useEffect(() => {
     if (ready && (!user || !user.role)) navigate("/admin/login");
@@ -76,6 +80,33 @@ const AdminDashboard = () => {
     const msg = encodeURIComponent(`Hi ${q.name}, thank you for your Glow Quote™ request with Garwood Glow JA! We'd love to help make your space glow.`);
     const phone = (q.phone || "").replace(/\D/g, "");
     return `https://wa.me/${phone}?text=${msg}`;
+  };
+
+  const payUrl = (q) => `${window.location.origin}/pay/${q.id}`;
+
+  const approve = async () => {
+    const val = parseFloat(amount);
+    if (!val || val <= 0) { toast.error("Enter a valid amount."); return; }
+    try {
+      await api.post(`/quotes/${selected.id}/approve`, { amount: val, currency });
+      toast.success(`Approved — ${currency} $${val.toFixed(2)}. Pay Now link ready.`);
+      setAmount("");
+      load();
+      setSelected((s) => ({ ...s, status: "approved", price: val, currency, paid: false }));
+    } catch {
+      toast.error("Approval failed.");
+    }
+  };
+
+  const copyPayLink = (q) => {
+    navigator.clipboard?.writeText(payUrl(q));
+    toast.success("Pay Now link copied.");
+  };
+
+  const sendPayWhatsApp = (q) => {
+    const msg = encodeURIComponent(`Hi ${q.name}, your Garwood Glow JA quote is approved: ${q.currency || "USD"} $${Number(q.price).toFixed(2)}. Pay securely here: ${payUrl(q)}`);
+    const phone = (q.phone || "").replace(/\D/g, "");
+    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   };
 
   if (!ready || !user) {
@@ -200,6 +231,35 @@ const AdminDashboard = () => {
               <a href={waLink(selected)} target="_blank" rel="noreferrer" data-testid="modal-whatsapp" className="glass-card inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm hover:text-glow-soft"><MessageCircle size={15} /> WhatsApp</a>
               <a href={`tel:${selected.phone}`} className="glass-card inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm hover:text-glow-soft"><Phone size={15} /> Call</a>
               <a href={`mailto:${selected.email}`} className="glass-card inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm hover:text-glow-soft"><Mail size={15} /> Email</a>
+            </div>
+
+            {/* Payment / Approval */}
+            <div className="mt-5 rounded-2xl bg-white/[0.03] border border-white/10 p-5" data-testid="approve-section">
+              <div className="flex items-center gap-2 text-glow-soft text-sm font-medium mb-3"><CreditCard size={15} /> Approve & Collect Payment</div>
+              {selected.paid ? (
+                <div className="flex items-center gap-2 text-emerald-300 text-sm" data-testid="payment-paid"><CheckCircle2 size={16} /> Paid — {selected.currency} ${Number(selected.price).toFixed(2)}</div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <select value={currency} onChange={(e) => setCurrency(e.target.value)} data-testid="approve-currency" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-glow-purple">
+                      <option value="USD">USD</option>
+                      <option value="JMD">JMD</option>
+                    </select>
+                    <div className="relative flex-1">
+                      <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                      <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={selected.price ? String(selected.price) : "Set price"} data-testid="approve-amount" className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-glow-purple" />
+                    </div>
+                    <button onClick={approve} data-testid="approve-submit" className="glow-btn px-4 py-2.5 rounded-xl text-white text-sm font-medium whitespace-nowrap">{selected.price ? "Update Price" : "Approve"}</button>
+                  </div>
+                  {selected.price != null && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="pay-link-row">
+                      <span className="text-xs text-white/50">Pay Now link ready ({selected.currency} ${Number(selected.price).toFixed(2)}):</span>
+                      <button onClick={() => copyPayLink(selected)} data-testid="copy-pay-link" className="glass-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:text-glow-soft"><Copy size={12} /> Copy link</button>
+                      <button onClick={() => sendPayWhatsApp(selected)} data-testid="send-pay-whatsapp" className="glass-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:text-glow-soft"><MessageCircle size={12} /> Send via WhatsApp</button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="mt-4">

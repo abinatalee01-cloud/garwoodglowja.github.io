@@ -17,6 +17,7 @@ import Terms from "@/pages/Terms";
 import NotFound from "@/pages/NotFound";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
+import PayPage from "@/pages/PayPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -47,6 +48,7 @@ function App() {
         </Route>
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/pay/:id" element={<PayPage />} />
       </Routes>
     </BrowserRouter>
   );

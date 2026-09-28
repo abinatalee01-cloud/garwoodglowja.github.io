@@ -546,6 +546,131 @@ async def newsletter(body: NewsletterSignup):
     return {"success": True}
 
 
+# ---------------------------------------------------------------------------
+# PayPal payments
+# ---------------------------------------------------------------------------
+PAYPAL_MODE = (os.environ.get("PAYPAL_MODE") or "sandbox").strip() or "sandbox"
+PAYPAL_CLIENT_ID = (os.environ.get("PAYPAL_CLIENT_ID") or "").strip()
+PAYPAL_SECRET = (os.environ.get("PAYPAL_SECRET") or "").strip()
+PAYPAL_BASE = "https://api-m.paypal.com" if PAYPAL_MODE == "live" else "https://api-m.sandbox.paypal.com"
+
+
+def paypal_configured() -> bool:
+    return bool(PAYPAL_CLIENT_ID and PAYPAL_SECRET)
+
+
+def paypal_token() -> str:
+    r = requests.post(
+        f"{PAYPAL_BASE}/v1/oauth2/token",
+        auth=(PAYPAL_CLIENT_ID, PAYPAL_SECRET),
+        data={"grant_type": "client_credentials"},
+        headers={"Accept": "application/json"},
+        timeout=30,
+    )
+    r.raise_for_status()
+    return r.json()["access_token"]
+
+
+class ApproveRequest(BaseModel):
+    amount: float
+    currency: str = "USD"
+
+
+class CaptureRequest(BaseModel):
+    order_id: str
+
+
+@api_router.post("/quotes/{quote_id}/approve")
+async def approve_quote(quote_id: str, body: ApproveRequest, admin: dict = Depends(get_current_admin)):
+    res = await db.quotes.update_one(
+        {"id": quote_id},
+        {"$set": {"status": "approved", "price": round(body.amount, 2), "currency": body.currency.upper(), "paid": False, "approved_at": now_iso()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    return {"success": True}
+
+
+@api_router.get("/pay/{quote_id}")
+async def payment_summary(quote_id: str):
+    q = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
+    if not q:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return {
+        "id": q["id"],
+        "name": q.get("name", ""),
+        "service": q.get("service") or q.get("property_type", "Cleaning Service"),
+        "amount": q.get("price"),
+        "currency": q.get("currency", "USD"),
+        "status": q.get("status"),
+        "paid": bool(q.get("paid")),
+    }
+
+
+@api_router.get("/paypal/config")
+async def paypal_config():
+    return {"configured": paypal_configured(), "client_id": PAYPAL_CLIENT_ID, "mode": PAYPAL_MODE}
+
+
+@api_router.post("/payments/{quote_id}/create-order")
+async def create_payment_order(quote_id: str):
+    if not paypal_configured():
+        raise HTTPException(status_code=503, detail="PayPal is not configured yet.")
+    q = await db.quotes.find_one({"id": quote_id})
+    if not q:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if not q.get("price"):
+        raise HTTPException(status_code=400, detail="This quote has not been approved for payment yet.")
+    if q.get("paid"):
+        raise HTTPException(status_code=400, detail="This quote has already been paid.")
+    token = paypal_token()
+    amount = f"{float(q['price']):.2f}"
+    r = requests.post(
+        f"{PAYPAL_BASE}/v2/checkout/orders",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json={
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": quote_id,
+                "description": f"Garwood Glow JA — {q.get('service') or 'Cleaning Service'}",
+                "amount": {"currency_code": q.get("currency", "USD"), "value": amount},
+            }],
+        },
+        timeout=30,
+    )
+    r.raise_for_status()
+    return {"id": r.json()["id"]}
+
+
+@api_router.post("/payments/{quote_id}/capture")
+async def capture_payment(quote_id: str, body: CaptureRequest):
+    if not paypal_configured():
+        raise HTTPException(status_code=503, detail="PayPal is not configured yet.")
+    token = paypal_token()
+    r = requests.post(
+        f"{PAYPAL_BASE}/v2/checkout/orders/{body.order_id}/capture",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=30,
+    )
+    r.raise_for_status()
+    data = r.json()
+    status = data.get("status")
+    if status == "COMPLETED":
+        cap = data["purchase_units"][0]["payments"]["captures"][0]
+        await db.quotes.update_one({"id": quote_id}, {"$set": {"paid": True, "status": "paid", "paid_at": now_iso()}})
+        await db.payments.insert_one({
+            "id": str(uuid.uuid4()),
+            "quote_id": quote_id,
+            "order_id": body.order_id,
+            "capture_id": cap["id"],
+            "amount": cap["amount"]["value"],
+            "currency": cap["amount"]["currency_code"],
+            "status": status,
+            "created_at": now_iso(),
+        })
+    return {"status": status}
+
+
 app.include_router(api_router)
 
 app.add_middleware(
