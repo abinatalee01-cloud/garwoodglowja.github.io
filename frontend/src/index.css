@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 4%;
+    --foreground: 0 0% 100%;
+    --card: 240 15% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 15% 9%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 279 63% 49%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 12% 14%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 10% 14%;
+    --muted-foreground: 240 10% 68%;
+    --accent: 271 91% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 18%;
+    --input: 240 10% 16%;
+    --ring: 279 63% 55%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', -apple-system, sans-serif;
+  }
+  ::selection {
+    background: rgba(168, 85, 247, 0.35);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply backdrop-blur-md border border-white/10;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(139,47,201,0.05) 100%);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .glow-btn {
+    background: linear-gradient(135deg, #8B2FC9 0%, #6821A8 100%);
+    box-shadow: 0 0 22px rgba(139,47,201,0.45);
+    transition: box-shadow .3s ease, transform .3s ease;
+  }
+  .glow-btn:hover {
+    box-shadow: 0 0 36px rgba(168,85,247,0.75);
+    transform: translateY(-1px);
+  }
+  .overline-label {
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.72rem;
+    color: #B87CF8;
+  }
+  .text-shimmer {
+    background: linear-gradient(90deg, #FFFFFF 0%, #C9A6FF 50%, #FFFFFF 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+.ambient-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(139,47,201,0.20) 0%, rgba(10,10,12,0) 65%);
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #0A0A0C; }
+::-webkit-scrollbar-thumb { background: #2a2a35; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #8B2FC9; }

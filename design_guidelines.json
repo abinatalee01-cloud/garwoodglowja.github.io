@@ -1,0 +1,236 @@
+{
+  "brand_identity": {
+    "name": "GARWOOD GLOW JA",
+    "headline": "Leaving Every Space Glowing.",
+    "slogan": "Cleaning You Can See. Freshness You Can Feel.",
+    "archetype": "Archetype 5: Luxury Minimalism & Architectural Precision",
+    "tone": "Ultra-premium, cinematic, trustworthy, immaculate, detail-obsessed, Jamaican hospitality elevated to 5-star concierge standards",
+    "logo_url": "https://customer-assets-4nw71qhi.emergentagent.net/job_40014bd6-c4ff-49cd-8fba-da31b350680a/artifacts/7hb17ty6_IMG_0157.webp",
+    "instagram": "@garwoodglow.ja",
+    "email": "garwoodglowja@gmail.com",
+    "phone": "+1 (876) 555-GLOW",
+    "location": "Kingston & St. Andrew, Montego Bay, Ocho Rios & Destination Villas across Jamaica"
+  },
+  "signature_systems": {
+    "the_glow_standard": "The benchmark of immaculate sanitation, hospital-grade non-toxic chemistry, white-glove staging, and sensory freshness.",
+    "signature_glow_journey": [
+      {
+        "step": 1,
+        "name": "Glow Quote™",
+        "tagline": "Tailored Estimate",
+        "description": "Smart, transparent multi-step assessment or AI Glow Guide valuation crafted around your square footage, lifestyle cadence, and architectural specifics."
+      },
+      {
+        "step": 2,
+        "name": "Glow Plan™",
+        "tagline": "Custom Protocol",
+        "description": "Every surface, fabric, finish, and fixture is cataloged into a bespoke room-by-room master checklist by our lead concierge specialist."
+      },
+      {
+        "step": 3,
+        "name": "Signature Glow™",
+        "tagline": "The Deep Cleanse",
+        "description": "Vetted, uniformed cleaning artisans execute dual-phase micro-filtration purification, high-heat vapor sanitation, and surface rejuvenation."
+      },
+      {
+        "step": 4,
+        "name": "Glow Check™",
+        "tagline": "50-Point Audit",
+        "description": "Rigorous supervisor inspection testing reflectivity, corner lint zero-tolerance, indoor air index, and aromatic balance."
+      },
+      {
+        "step": 5,
+        "name": "Glow Finish™",
+        "tagline": "White Glove Reveal",
+        "description": "Signature ambient room fragrance misting, turn-down alignment, and complete walkthrough guarantee with digital audit certificate."
+      }
+    ],
+    "branded_ctas": {
+      "primary": "Request Your Glow Quote™",
+      "ai_tool": "Consult AI Glow Guide™",
+      "call": "Call Concierge",
+      "whatsapp": "Instant WhatsApp Glow Desk"
+    }
+  },
+  "color_palette": {
+    "rules": "Strict adherence: Primary Black, Secondary Royal Purple, Soft Glow Purple accent, White text, Crisp Light Grey surfaces. Strictly NO blue and NO green.",
+    "colors": {
+      "obsidian_black": "#0A0A0C",
+      "jet_surface": "#121217",
+      "elevated_surface": "#1A1A23",
+      "card_surface": "rgba(22, 22, 30, 0.75)",
+      "light_grey_bg": "#F5F5F7",
+      "light_grey_subtle": "#EBEBF0",
+      "deep_royal_purple": "#7928CA",
+      "vibrant_purple": "#8B2FC9",
+      "soft_glow_purple": "#B87CF8",
+      "electric_amethyst": "#A855F7",
+      "glow_purple_shadow": "rgba(168, 85, 247, 0.35)",
+      "glow_ambient": "rgba(139, 47, 201, 0.18)",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#B0B0C3",
+      "text_dark_mode_invert": "#0D0D11",
+      "border_dark": "rgba(255, 255, 255, 0.08)",
+      "border_purple_glow": "rgba(168, 85, 247, 0.3)"
+    },
+    "gradients": {
+      "purple_glow_radial": "radial-gradient(circle at 50% 0%, rgba(139, 47, 201, 0.22) 0%, rgba(10, 10, 12, 0) 70%)",
+      "card_glass_gradient": "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(139, 47, 201, 0.04) 100%)",
+      "text_shimmer": "linear-gradient(90deg, #FFFFFF 0%, #D4B6FF 50%, #FFFFFF 100%)",
+      "accent_button": "linear-gradient(135deg, #8B2FC9 0%, #6821A8 100%)"
+    }
+  },
+  "typography": {
+    "anti_default_rule": "Strict prohibition of Inter, Roboto, Open Sans for headings. Use modern geometric font Outfit paired with Plus Jakarta Sans / DM Sans.",
+    "heading_font": "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif",
+    "body_font": "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+    "mono_font": "'JetBrains Mono', monospace",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-tight",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-white",
+      "h3": "text-xl sm:text-2xl font-medium tracking-tight text-white",
+      "h4": "text-lg sm:text-xl font-medium text-white",
+      "body": "text-base leading-relaxed text-[#B0B0C3]",
+      "body_small": "text-sm leading-normal text-[#8E8EA8]",
+      "overline": "text-xs font-mono uppercase tracking-[0.25em] text-[#B87CF8]"
+    }
+  },
+  "curated_imagery": {
+    "hero_residence": {
+      "url": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHw0fHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwY2xlYW58ZW58MHx8fHwxNzkwNTI1NDA3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Spotless luxury penthouse living room with marble and high ceilings",
+      "category": "Hero Background / Luxury Residential"
+    },
+    "estate_living_room": {
+      "url": "https://images.unsplash.com/photo-1564078516393-cf04bd966897?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwzfHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwY2xlYW58ZW58MHx8fHwxNzkwNTI1NDA3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Architectural high ceiling salon glowing with spotless finishes",
+      "category": "Deep Cleanse Service Showcase"
+    },
+    "chef_kitchen": {
+      "url": "https://images.unsplash.com/photo-1682888813913-e13f18692019?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHw0fHxjbGVhbiUyMG1vZGVybiUyMGtpdGNoZW4lMjBpbnRlcmlvcnxlbnwwfHx8fDE3OTA1MjU0MDd8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Immaculate marble island and spotless kitchen cabinets",
+      "category": "Commercial & Residential Kitchen Purification"
+    },
+    "wood_kitchen_island": {
+      "url": "https://images.unsplash.com/photo-1565538810643-b5bdb714032a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwzfHxjbGVhbiUyMG1vZGVybiUyMGtpdGNoZW4lMjBpbnRlcmlvcnxlbnwwfHx8fDE3OTA1MjU0MDd8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Sparkling polished counters and glass light pendants",
+      "category": "Sanitization & Detail Cleaning"
+    },
+    "marble_bathroom_master": {
+      "url": "https://images.unsplash.com/photo-1576698483491-8c43f0862543?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBiYXRocm9vbSUyMG1hcmJsZSUyMHNwb3RsZXNzfGVufDB8fHx8MTc5MDUyNTQwN3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "High-end marble bathroom vanity polished to zero-streak perfection",
+      "category": "Luxury Spa Bathroom Glow"
+    },
+    "marble_mirrors_suite": {
+      "url": "https://images.unsplash.com/photo-1564540583246-934409427776?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHw0fHxsdXh1cnklMjBiYXRocm9vbSUyMG1hcmJsZSUyMHNwb3RsZXNzfGVufDB8fHx8MTc5MDUyNTQwN3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Dual vanity and gold framed oval mirrors sparkling clean",
+      "category": "Before & After Showcase / Hotel & Villa Standard"
+    },
+    "commercial_clean_interior": {
+      "url": "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBtb2Rlcm4lMjBsaXZpbmclMjByb29tJTIwY2xlYW58ZW58MHx8fHwxNzkwNTI1NDA3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Minimalist sunlit commercial executive lounge",
+      "category": "Corporate & Commercial Cleaning"
+    }
+  },
+  "surface_strategy": {
+    "glassmorphism": {
+      "header": "backdrop-blur-xl bg-[#0A0A0C]/85 border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)]",
+      "card": "backdrop-blur-md bg-[#121217]/80 border border-white/10 hover:border-[#8B2FC9]/50 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.37)]",
+      "floating_widget": "backdrop-blur-xl bg-[#16161F]/90 border border-[#8B2FC9]/30 shadow-[0_0_25px_rgba(139,47,201,0.2)]"
+    },
+    "purple_glow_effects": {
+      "soft_pulse": "shadow-[0_0_20px_rgba(168,85,247,0.3)]",
+      "strong_glow": "shadow-[0_0_35px_rgba(139,47,201,0.55)]",
+      "border_glow": "border border-[#8B2FC9]/60 shadow-[0_0_15px_rgba(139,47,201,0.25)]",
+      "glow_button": "relative overflow-hidden bg-gradient-to-r from-[#8B2FC9] to-[#6821A8] text-white font-medium px-6 py-3 rounded-full shadow-[0_0_20px_rgba(139,47,201,0.45)] hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] transition-all duration-300"
+    }
+  },
+  "page_blueprints": {
+    "home": {
+      "sections": [
+        "Hero: Dark atmospheric room visual, purple ray ambient spotlight, Logo showcase, Brand tagline 'Leaving Every Space Glowing', dual CTAs ('Request Your Glow Quote™', 'Consult AI Glow Guide™'), animated stat counters (99.8% Client Retention, 450+ Luxury Estates Transformed, 50-Point Audit Standard).",
+        "Trust Badges Strip: Fully vetted white-glove staff, hospital-grade eco sanitation, Jamaican tourism villa compliance, zero-streak guarantee.",
+        "Signature Glow™ Journey: Interactive 5-step visual horizontal timeline (Glow Quote™ → Glow Plan™ → Signature Glow™ → Glow Check™ → Glow Finish™) with live step switching and micro-details.",
+        "Featured Service Tiers: 1) Residential Estate Glow, 2) Commercial & Executive Spaces, 3) Luxury Vacation Villa Turnover, 4) Post-Construction & Move-In Deep Glow, 5) Event Pre/Post Concierge Cleanse.",
+        "Interactive Before & After Split-Screen Slider: Touch/drag comparison revealing spotless marble transformation with interactive divider handle.",
+        "AI Glow Guide Teaser Card: Interactive property type + square footage + urgency selector triggering real-time package matching with instant reasoning preview.",
+        "Client Testimonials & Press: Jamaican executives, luxury villa owners, commercial studio managers with 5-star ratings.",
+        "FAQ Accordion: Transparent answers on insurance, supplies, turnaround times, and The Glow Standard™.",
+        "Footer: 4-column luxury navigation, newsletter for seasonal tips, direct WhatsApp and Call buttons, Jamaican registration details."
+      ]
+    },
+    "ai_glow_guide": {
+      "description": "Smart concierge engine that analyzes user space characteristics and produces a tailored recommendation.",
+      "inputs": [
+        "Property Type (Luxury Villa, Penthouse/Apartment, Corporate Office, Retail/Showroom, Post-Renovation Site)",
+        "Approximate Size (Under 1,500 sq ft, 1,500-3,500 sq ft, 3,500-6,000 sq ft, 6,000+ sq ft)",
+        "Current Condition & Urgency (Routine Refinement, Deep Restorative, Emergency Turnover within 24h, Move-in/Move-out)",
+        "Key Priority Zones (Gourmet Kitchen, Spa Bathrooms, Hardwood/Marble Buffing, High Glass Panoramas, Odor Purification)",
+        "Desired Frequency (One-Time Deep Clean, Bi-Weekly Concierge, Weekly VIP Service, On-Demand Villa Rotation)"
+      ],
+      "outputs": [
+        "Recommended Signature Package (with match confidence score e.g. 98% Match)",
+        "Side-by-side comparison matrix with 2 alternate packages highlighting included services",
+        "Algorithmic 'Why We Recommended This' breakdown citing exact property details and frequency needs",
+        "Clear CTA button: 'Lock in Glow Quote™ for this Package' linking directly to the multi-step request with inputs pre-populated."
+      ]
+    },
+    "services_suite": {
+      "items": [
+        {
+          "slug": "residential-glow",
+          "title": "Luxury Residential & Penthouse Glow",
+          "tagline": "Sanctuary-grade purification for prestigious Jamaican homes.",
+          "includes": ["White-glove dusting of architectural mouldings", "Dual-side crystal glass cleaning", "HEPA filtered microfiber sanitization", "Marble and quartz polishing", "Signature ambient fragrance misting"]
+        },
+        {
+          "slug": "commercial-concierge",
+          "title": "Executive Commercial & Boardroom Cleanse",
+          "tagline": "Pristine work environments that inspire high-value deals.",
+          "includes": ["Zero-residue executive desk sanitization", "Conference room tech screen detailing", "Restroom porcelain & chrome micro-buffing", "Commercial floor scrub & seal", "Discreet after-hours scheduling"]
+        },
+        {
+          "slug": "villa-turnover",
+          "title": "Luxury Villa & Vacation Rental Turnover",
+          "tagline": "5-Star hotel standards for Ocho Rios, Montego Bay & Kingston luxury stays.",
+          "includes": ["Rapid 4-hour turnaround capability", "Linen change & hospital-grade bed tucks", "Welcome guest amenity staging", "Patio & outdoor dining washdown", "Damage inspection & inventory log"]
+        },
+        {
+          "slug": "post-construction",
+          "title": "Post-Construction & Move-In Restoration",
+          "tagline": "Eliminating industrial silica dust and construction film.",
+          "includes": ["High-altitude vent vacuuming", "Paint splatter & grout residue removal", "Protective tape extraction from fixtures", "HVAC air intake wipe-down", "Move-in readiness guarantee"]
+        }
+      ]
+    },
+    "quote_request_wizard": {
+      "steps": [
+        "Step 1: Space Profile (Residential / Commercial / Villa / Move-In)",
+        "Step 2: Dimensions & Specifications (Square footage, bed/bath count, special floorings)",
+        "Step 3: Scheduling & Frequency (Single Deep Clean, Weekly, Bi-Weekly, Date selector)",
+        "Step 4: Custom Details & Optional Photo Uploads (Show us problem areas or layouts)",
+        "Step 5: Client Contact & Preferred Communication (WhatsApp, Phone Call, Email)"
+      ]
+    },
+    "admin_dashboard": {
+      "purpose": "Allow Garwood Glow JA operations team to review, accept, assign, and update status of Glow Quotes™ received from clients.",
+      "features": ["Status badges (New, Scheduled, In Progress, Completed)", "Filter by property type & location (Kingston, Mobay, Ocho Rios)", "One-click WhatsApp message generator for clients", "Revenue projection & estimated square footage totals"]
+    }
+  },
+  "technical_and_accessibility_spec": {
+    "framework": "React 19 + Tailwind CSS + Framer Motion + Lucide React + Sonner",
+    "theme": "Dark Luxury Primary (#0A0A0C) with Purple Glow accents, with high-contrast text compliance (APCA and WCAG AA). Strict exclusion of blue and green colors.",
+    "testing_requirement": "Every interactive and informational element MUST include a clear `data-testid` attribute (e.g., data-testid='hero-glow-quote-cta', data-testid='ai-glow-guide-submit', data-testid='quote-step-1-next', etc.).",
+    "contrast_assurance": "Body text on dark backgrounds is at minimum #B0B0C3 or #FFFFFF (exceeds 4.5:1 ratio). All interactive hover states explicitly set both background and text color.",
+    "components": "All UI files should be written in JavaScript (.js / .jsx) with clean modular code."
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Never build generic SaaS designs. GARWOOD GLOW JA is an ultra-luxury Jamaican concierge brand. Give it the polish of Aman Resorts and Rolls-Royce.",
+    "Logo native placement: The provided logo is on black. The navbar, hero, and dark-themed components must seamlessly integrate this black background mark.",
+    "Strict Color Compliance: Primary Black (#0A0A0C), Secondary Royal Purple (#8B2FC9), Soft Glow Purple (#B87CF8), White text, Crisp Light Grey surfaces. Strictly NO blue (#0000FF, #1B93A4, cyan, etc.) and NO green (#00FF00, teal, etc.).",
+    "Keep typography geometric and modern: Use 'Outfit' or clean geometric sans for headings and 'Plus Jakarta Sans' for body. Never use generic 'Inter' for headings.",
+    "Include every page requested: Home, About, Services, Individual Service Detail, Before & After Gallery (with interactive slider & masonry filter), Request a Glow Quote™ (5-step form), AI Glow Guide (interactive concierge engine), FAQ, Blog, Contact, Privacy, Terms, and Admin Dashboard.",
+    "All interactive elements must carry descriptive data-testid attributes for reliable end-to-end testing.",
+    "Make the AI Glow Guide dynamic: users make selections, click 'Generate Glow Plan & Comparison', and see instant intelligent feedback explaining why the plan was chosen based on their inputs."
+  ]
+}
