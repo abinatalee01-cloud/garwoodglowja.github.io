@@ -13,6 +13,12 @@ from typing import List, Optional, Annotated
 import jwt
 import bcrypt
 import requests
+import httpx
+import re
+import ipaddress
+from html import escape
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File, Header, Query, Response
 from starlette.middleware.cors import CORSMiddleware
@@ -547,12 +553,136 @@ async def newsletter(body: NewsletterSignup):
 
 
 # ---------------------------------------------------------------------------
-# PayPal payments
+# Email (Emergent managed Resend)
 # ---------------------------------------------------------------------------
+EMAIL_BASE_URL = "https://integrations.emergentagent.com"
+EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY", "")
+EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Garwood Glow JA")
+EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO")
+
+_SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
+_CRED_ASK = ("reply with your password", "reply with the code", "send your password", "cvv",
+             "send us your password", "enter your password below", "confirm your card number",
+             "your full card number", "seed phrase", "recovery phrase", "verify your card",
+             "social security number", "confirm your bank details")
+_HOSTISH = re.compile(r"\b(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})", re.I)
+
+
+def _host_ok(host: str) -> bool:
+    if not host or "xn--" in host:
+        return False
+    try:
+        ipaddress.ip_address(host)
+        return False
+    except ValueError:
+        pass
+    return not any(host == s or host.endswith("." + s) for s in _SHORTENERS)
+
+
+def _same_site(shown: str, real: str) -> bool:
+    return shown == real or real.endswith("." + shown) or shown.endswith("." + real)
+
+
+class _EmailScan(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tags, self.urls, self.anchors = set(), [], []
+        self._href, self._text = None, []
+
+    def handle_starttag(self, tag, attrs):
+        self.tags.add(tag.lower())
+        self.urls += [v for k, v in attrs if k.lower() in ("href", "src") and v]
+        if tag.lower() == "a":
+            self._href = dict((k.lower(), v) for k, v in attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            self.anchors.append((self._href, "".join(self._text)))
+            self._href, self._text = None, []
+
+
+def _assert_safe_email(subject: str, html: str) -> None:
+    scan = _EmailScan(); scan.feed(html)
+    if scan.tags & {"form", "input", "textarea", "select"}:
+        raise ValueError("No forms or input fields in email (G2)")
+    body = f"{subject}\n{html}".lower()
+    for p in _CRED_ASK:
+        if p in body:
+            raise ValueError(f"Email asks the recipient for credentials: {p!r} (G2)")
+    for url in scan.urls:
+        low = url.strip().lower()
+        if low.startswith(("mailto:", "tel:", "cid:", "#")):
+            continue
+        if not low.startswith("https://"):
+            raise ValueError(f"Email links/assets must be absolute https: {url!r} (G3)")
+        host = urlparse(low).hostname or ""
+        if not _host_ok(host) or urlparse(low).username is not None:
+            raise ValueError(f"Shortened, numeric-host or credential-bearing URL: {url!r} (G3)")
+    for href, text in scan.anchors:
+        real = urlparse(href.strip().lower()).hostname or ""
+        if not real:
+            continue
+        for m in _HOSTISH.finditer(text):
+            if not _same_site(m.group(1).lower(), real):
+                raise ValueError(f"Anchor text {m.group(1)!r} != real link host {real!r} (G3)")
+
+
+async def send_email(*, to: str, subject: str, html: str) -> Optional[str]:
+    if not EMAIL_KEY:
+        logger.warning("Email not configured; skipping send")
+        return None
+    _assert_safe_email(subject, html)
+    payload = {"to": [to], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
+    if EMAIL_REPLY_TO:
+        payload["contact_email"] = EMAIL_REPLY_TO
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{EMAIL_BASE_URL}/api/v1/email/send",
+                headers={"X-Email-Key": EMAIL_KEY},
+                json=payload,
+            )
+        resp.raise_for_status()
+        return resp.json().get("id")
+    except Exception as e:
+        logger.error(f"Email send error: {e}")
+        return None
+
+
+def _email_shell(inner: str) -> str:
+    return (
+        '<table role="presentation" width="100%" style="background:#0A0A0C;padding:32px 0">'
+        '<tr><td align="center">'
+        '<table role="presentation" width="520" style="background:#121217;border-radius:16px;'
+        'font-family:Arial,Helvetica,sans-serif;color:#ffffff;overflow:hidden">'
+        '<tr><td style="padding:28px 32px;border-bottom:1px solid rgba(255,255,255,0.1)">'
+        '<span style="font-size:20px;font-weight:700;color:#ffffff">Garwood <span style="color:#B87CF8">Glow</span> JA</span>'
+        '</td></tr>'
+        f'<tr><td style="padding:32px">{inner}</td></tr>'
+        '<tr><td style="padding:20px 32px;border-top:1px solid rgba(255,255,255,0.1);'
+        'font-size:12px;color:#8E8EA8">Sent by Garwood Glow JA. We never ask for your password '
+        'or card details by email. Leaving Every Space Glowing.</td></tr>'
+        '</table></td></tr></table>'
+    )
+
+
+def _btn(url: str, label: str) -> str:
+    return (f'<a href="{escape(url)}" style="display:inline-block;background:#8B2FC9;color:#ffffff;'
+            f'text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:600">{escape(label)}</a>')
+
+
+
 PAYPAL_MODE = (os.environ.get("PAYPAL_MODE") or "sandbox").strip() or "sandbox"
 PAYPAL_CLIENT_ID = (os.environ.get("PAYPAL_CLIENT_ID") or "").strip()
 PAYPAL_SECRET = (os.environ.get("PAYPAL_SECRET") or "").strip()
 PAYPAL_BASE = "https://api-m.paypal.com" if PAYPAL_MODE == "live" else "https://api-m.sandbox.paypal.com"
+JMD_PER_USD = 158.0
+DEPOSIT_PCT = 0.5
 
 
 def paypal_configured() -> bool:
@@ -571,23 +701,56 @@ def paypal_token() -> str:
     return r.json()["access_token"]
 
 
+def _fmt_money(usd: float) -> str:
+    jmd = usd * JMD_PER_USD
+    return f"USD ${usd:,.2f} (~JMD ${jmd:,.0f})"
+
+
 class ApproveRequest(BaseModel):
     amount: float
-    currency: str = "USD"
+    base_url: str = ""
+    allow_deposit: bool = True
 
 
 class CaptureRequest(BaseModel):
     order_id: str
 
 
+def _sanitize_base(url: str) -> str:
+    url = (url or "").strip().rstrip("/")
+    if url.startswith("https://") and (urlparse(url).hostname or ""):
+        return url
+    return ""
+
+
 @api_router.post("/quotes/{quote_id}/approve")
 async def approve_quote(quote_id: str, body: ApproveRequest, admin: dict = Depends(get_current_admin)):
-    res = await db.quotes.update_one(
-        {"id": quote_id},
-        {"$set": {"status": "approved", "price": round(body.amount, 2), "currency": body.currency.upper(), "paid": False, "approved_at": now_iso()}},
-    )
-    if res.matched_count == 0:
+    q = await db.quotes.find_one({"id": quote_id})
+    if not q:
         raise HTTPException(status_code=404, detail="Quote not found")
+    price = round(body.amount, 2)
+    await db.quotes.update_one(
+        {"id": quote_id},
+        {"$set": {"status": "approved", "price": price, "currency": "USD",
+                  "allow_deposit": body.allow_deposit, "amount_paid": q.get("amount_paid", 0.0),
+                  "paid": False, "approved_at": now_iso()}},
+    )
+    base = _sanitize_base(body.base_url)
+    if base and q.get("email"):
+        link = f"{base}/pay/{quote_id}"
+        deposit_line = ""
+        if body.allow_deposit:
+            deposit_line = f'<p style="color:#B0B0C3">You can pay a {int(DEPOSIT_PCT*100)}% deposit now and settle the balance after your clean, or pay in full.</p>'
+        inner = (
+            f'<h1 style="font-size:22px;margin:0 0 12px">Your Glow Quote&trade; is approved</h1>'
+            f'<p style="color:#B0B0C3">Hi {escape(q.get("name","there").split(" ")[0])}, thank you for choosing Garwood Glow JA.</p>'
+            f'<p style="color:#B0B0C3">Service: <strong style="color:#fff">{escape(q.get("service") or q.get("property_type",""))}</strong><br/>'
+            f'Total: <strong style="color:#fff">{_fmt_money(price)}</strong></p>'
+            f'{deposit_line}'
+            f'<p style="margin:24px 0">{_btn(link, "Pay Securely Online")}</p>'
+            f'<p style="font-size:12px;color:#8E8EA8">Or open this link: {escape(link)}</p>'
+        )
+        await send_email(to=q["email"], subject="Your Garwood Glow JA quote is approved — Pay Now", html=_email_shell(inner))
     return {"success": True}
 
 
@@ -596,12 +759,20 @@ async def payment_summary(quote_id: str):
     q = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
     if not q:
         raise HTTPException(status_code=404, detail="Request not found")
+    price = q.get("price")
+    paid_amt = round(q.get("amount_paid", 0.0), 2)
+    remaining = round((price or 0) - paid_amt, 2) if price is not None else None
     return {
         "id": q["id"],
         "name": q.get("name", ""),
         "service": q.get("service") or q.get("property_type", "Cleaning Service"),
-        "amount": q.get("price"),
-        "currency": q.get("currency", "USD"),
+        "amount": price,
+        "currency": "USD",
+        "amount_paid": paid_amt,
+        "remaining": remaining,
+        "allow_deposit": bool(q.get("allow_deposit", True)),
+        "deposit_amount": round(price * DEPOSIT_PCT, 2) if price else None,
+        "jmd_rate": JMD_PER_USD,
         "status": q.get("status"),
         "paid": bool(q.get("paid")),
     }
@@ -609,22 +780,28 @@ async def payment_summary(quote_id: str):
 
 @api_router.get("/paypal/config")
 async def paypal_config():
-    return {"configured": paypal_configured(), "client_id": PAYPAL_CLIENT_ID, "mode": PAYPAL_MODE}
+    return {"configured": paypal_configured(), "client_id": PAYPAL_CLIENT_ID, "mode": PAYPAL_MODE, "jmd_rate": JMD_PER_USD}
 
 
 @api_router.post("/payments/{quote_id}/create-order")
-async def create_payment_order(quote_id: str):
+async def create_payment_order(quote_id: str, mode: str = Query("full")):
     if not paypal_configured():
         raise HTTPException(status_code=503, detail="PayPal is not configured yet.")
     q = await db.quotes.find_one({"id": quote_id})
     if not q:
         raise HTTPException(status_code=404, detail="Request not found")
-    if not q.get("price"):
+    price = q.get("price")
+    if not price:
         raise HTTPException(status_code=400, detail="This quote has not been approved for payment yet.")
-    if q.get("paid"):
-        raise HTTPException(status_code=400, detail="This quote has already been paid.")
+    paid_amt = round(q.get("amount_paid", 0.0), 2)
+    remaining = round(price - paid_amt, 2)
+    if remaining <= 0:
+        raise HTTPException(status_code=400, detail="This quote has already been paid in full.")
+    if mode == "deposit" and paid_amt == 0 and q.get("allow_deposit", True):
+        charge = round(price * DEPOSIT_PCT, 2)
+    else:
+        charge = remaining
     token = paypal_token()
-    amount = f"{float(q['price']):.2f}"
     r = requests.post(
         f"{PAYPAL_BASE}/v2/checkout/orders",
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
@@ -633,13 +810,13 @@ async def create_payment_order(quote_id: str):
             "purchase_units": [{
                 "reference_id": quote_id,
                 "description": f"Garwood Glow JA — {q.get('service') or 'Cleaning Service'}",
-                "amount": {"currency_code": q.get("currency", "USD"), "value": amount},
+                "amount": {"currency_code": "USD", "value": f"{charge:.2f}"},
             }],
         },
         timeout=30,
     )
     r.raise_for_status()
-    return {"id": r.json()["id"]}
+    return {"id": r.json()["id"], "charge": charge}
 
 
 @api_router.post("/payments/{quote_id}/capture")
@@ -656,18 +833,37 @@ async def capture_payment(quote_id: str, body: CaptureRequest):
     data = r.json()
     status = data.get("status")
     if status == "COMPLETED":
+        q = await db.quotes.find_one({"id": quote_id})
         cap = data["purchase_units"][0]["payments"]["captures"][0]
-        await db.quotes.update_one({"id": quote_id}, {"$set": {"paid": True, "status": "paid", "paid_at": now_iso()}})
+        captured = float(cap["amount"]["value"])
+        price = float(q.get("price") or 0)
+        new_paid = round(float(q.get("amount_paid", 0.0)) + captured, 2)
+        fully_paid = new_paid + 0.01 >= price
+        await db.quotes.update_one(
+            {"id": quote_id},
+            {"$set": {"amount_paid": new_paid, "paid": fully_paid,
+                      "status": "paid" if fully_paid else "deposit-paid",
+                      "paid_at": now_iso()}},
+        )
         await db.payments.insert_one({
-            "id": str(uuid.uuid4()),
-            "quote_id": quote_id,
-            "order_id": body.order_id,
-            "capture_id": cap["id"],
-            "amount": cap["amount"]["value"],
-            "currency": cap["amount"]["currency_code"],
-            "status": status,
-            "created_at": now_iso(),
+            "id": str(uuid.uuid4()), "quote_id": quote_id, "order_id": body.order_id,
+            "capture_id": cap["id"], "amount": cap["amount"]["value"],
+            "currency": cap["amount"]["currency_code"], "status": status, "created_at": now_iso(),
         })
+        # Receipt email to client
+        if q and q.get("email"):
+            remaining = round(price - new_paid, 2)
+            if fully_paid:
+                bal_line = '<p style="color:#B0B0C3">Your payment is complete. Thank you!</p>'
+            else:
+                bal_line = f'<p style="color:#B0B0C3">Deposit received. Remaining balance: <strong style="color:#fff">{_fmt_money(remaining)}</strong>, payable after your clean.</p>'
+            inner = (
+                f'<h1 style="font-size:22px;margin:0 0 12px">Payment received &mdash; thank you!</h1>'
+                f'<p style="color:#B0B0C3">Hi {escape(q.get("name","there").split(" ")[0])}, we&rsquo;ve received your payment of <strong style="color:#fff">{_fmt_money(captured)}</strong> for {escape(q.get("service") or "your cleaning service")}.</p>'
+                f'{bal_line}'
+                f'<p style="font-size:12px;color:#8E8EA8">Receipt ID: {escape(cap["id"])}</p>'
+            )
+            await send_email(to=q["email"], subject="Your Garwood Glow JA payment receipt", html=_email_shell(inner))
     return {"status": status}
 
 

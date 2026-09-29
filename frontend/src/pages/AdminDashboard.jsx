@@ -14,6 +14,7 @@ const STATUS_META = {
   approved: { label: "Approved", cls: "bg-sky-500/15 text-glow-soft border-glow-purple/30" },
   scheduled: { label: "Scheduled", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   "in-progress": { label: "In Progress", cls: "bg-purple-400/15 text-purple-200 border-purple-400/30" },
+  "deposit-paid": { label: "Deposit Paid", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   paid: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   completed: { label: "Completed", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
 };
@@ -41,7 +42,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [allowDeposit, setAllowDeposit] = useState(true);
+  const JMD_RATE = 158;
 
   useEffect(() => {
     if (ready && (!user || !user.role)) navigate("/admin/login");
@@ -88,11 +90,11 @@ const AdminDashboard = () => {
     const val = parseFloat(amount);
     if (!val || val <= 0) { toast.error("Enter a valid amount."); return; }
     try {
-      await api.post(`/quotes/${selected.id}/approve`, { amount: val, currency });
-      toast.success(`Approved — ${currency} $${val.toFixed(2)}. Pay Now link ready.`);
+      await api.post(`/quotes/${selected.id}/approve`, { amount: val, base_url: window.location.origin, allow_deposit: allowDeposit });
+      toast.success(`Approved — USD $${val.toFixed(2)}. Pay Now link emailed to client.`);
       setAmount("");
       load();
-      setSelected((s) => ({ ...s, status: "approved", price: val, currency, paid: false }));
+      setSelected((s) => ({ ...s, status: "approved", price: val, currency: "USD", allow_deposit: allowDeposit, paid: false }));
     } catch {
       toast.error("Approval failed.");
     }
@@ -104,7 +106,7 @@ const AdminDashboard = () => {
   };
 
   const sendPayWhatsApp = (q) => {
-    const msg = encodeURIComponent(`Hi ${q.name}, your Garwood Glow JA quote is approved: ${q.currency || "USD"} $${Number(q.price).toFixed(2)}. Pay securely here: ${payUrl(q)}`);
+    const msg = encodeURIComponent(`Hi ${q.name}, your Garwood Glow JA quote is approved: USD $${Number(q.price).toFixed(2)}. Pay securely here: ${payUrl(q)}`);
     const phone = (q.phone || "").replace(/\D/g, "");
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   };
@@ -237,23 +239,28 @@ const AdminDashboard = () => {
             <div className="mt-5 rounded-2xl bg-white/[0.03] border border-white/10 p-5" data-testid="approve-section">
               <div className="flex items-center gap-2 text-glow-soft text-sm font-medium mb-3"><CreditCard size={15} /> Approve & Collect Payment</div>
               {selected.paid ? (
-                <div className="flex items-center gap-2 text-emerald-300 text-sm" data-testid="payment-paid"><CheckCircle2 size={16} /> Paid — {selected.currency} ${Number(selected.price).toFixed(2)}</div>
+                <div className="flex items-center gap-2 text-emerald-300 text-sm" data-testid="payment-paid"><CheckCircle2 size={16} /> Paid in full — USD ${Number(selected.price).toFixed(2)}</div>
               ) : (
                 <>
                   <div className="flex gap-2">
-                    <select value={currency} onChange={(e) => setCurrency(e.target.value)} data-testid="approve-currency" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-glow-purple">
-                      <option value="USD">USD</option>
-                      <option value="JMD">JMD</option>
-                    </select>
+                    <span className="inline-flex items-center px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white/70">USD</span>
                     <div className="relative flex-1">
                       <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                       <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={selected.price ? String(selected.price) : "Set price"} data-testid="approve-amount" className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-glow-purple" />
                     </div>
-                    <button onClick={approve} data-testid="approve-submit" className="glow-btn px-4 py-2.5 rounded-xl text-white text-sm font-medium whitespace-nowrap">{selected.price ? "Update Price" : "Approve"}</button>
+                    <button onClick={approve} data-testid="approve-submit" className="glow-btn px-4 py-2.5 rounded-xl text-white text-sm font-medium whitespace-nowrap">{selected.price ? "Update" : "Approve"}</button>
                   </div>
+                  {amount > 0 && <div className="text-xs text-glow-soft mt-2" data-testid="jmd-preview">Client sees ~JMD ${Math.round(parseFloat(amount) * JMD_RATE).toLocaleString()}</div>}
+                  <label className="flex items-center gap-2 mt-3 text-xs text-white/60 cursor-pointer" data-testid="allow-deposit-toggle">
+                    <input type="checkbox" checked={allowDeposit} onChange={(e) => setAllowDeposit(e.target.checked)} className="accent-[#8B2FC9]" />
+                    Allow 50% deposit now, balance after the clean
+                  </label>
+                  {selected.status === "deposit-paid" && (
+                    <div className="text-xs text-amber-300 mt-2">Deposit received: USD ${Number(selected.amount_paid || 0).toFixed(2)} · Balance: USD ${(Number(selected.price) - Number(selected.amount_paid || 0)).toFixed(2)}</div>
+                  )}
                   {selected.price != null && (
                     <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="pay-link-row">
-                      <span className="text-xs text-white/50">Pay Now link ready ({selected.currency} ${Number(selected.price).toFixed(2)}):</span>
+                      <span className="text-xs text-white/50">Pay Now link (emailed & below):</span>
                       <button onClick={() => copyPayLink(selected)} data-testid="copy-pay-link" className="glass-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:text-glow-soft"><Copy size={12} /> Copy link</button>
                       <button onClick={() => sendPayWhatsApp(selected)} data-testid="send-pay-whatsapp" className="glass-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:text-glow-soft"><MessageCircle size={12} /> Send via WhatsApp</button>
                     </div>
