@@ -3,8 +3,8 @@ export const BRAND = {
   headline: "Leaving Every Space Glowing.",
   slogan: "Cleaning You Can See. Freshness You Can Feel.",
   email: "garwoodglowja@gmail.com",
-  phone: "+1 (876) 555-4569",
-  phoneRaw: "18765554569",
+  phone: "+1 (876) 707-6797",
+  phoneRaw: "18767076797",
   instagram: "https://www.instagram.com/garwoodglow.ja",
   logo: "https://customer-assets-4nw71qhi.emergentagent.net/job_40014bd6-c4ff-49cd-8fba-da31b350680a/artifacts/7hb17ty6_IMG_0157.webp",
 };
