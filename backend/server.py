@@ -499,9 +499,29 @@ async def create_quote(body: QuoteRequest):
     doc = body.model_dump()
     doc["id"] = str(uuid.uuid4())
     doc["status"] = "new"
+    doc["amount_paid"] = 0.0
     doc["created_at"] = now_iso()
     await db.quotes.insert_one(doc)
     doc.pop("_id", None)
+    # Owner alert on new quote request
+    if OWNER_EMAIL:
+        extras = ", ".join(doc.get("extras", [])) or "—"
+        inner = (
+            f'<h1 style="font-size:22px;margin:0 0 12px">✨ New Glow Quote&trade; request</h1>'
+            f'<p style="color:#B0B0C3"><strong style="color:#fff">{escape(doc.get("name",""))}</strong> just submitted a request.</p>'
+            f'<p style="color:#B0B0C3">Service: <strong style="color:#fff">{escape(doc.get("service") or doc.get("property_type",""))}</strong><br/>'
+            f'Property: {escape(doc.get("property_type",""))} · Size: {escape(doc.get("size","") or "—")}<br/>'
+            f'Frequency: {escape(doc.get("frequency","") or "—")} · Photos: {len(doc.get("photo_paths", []))}<br/>'
+            f'Extras: {escape(extras)}</p>'
+            f'<p style="color:#B0B0C3">Contact: {escape(doc.get("email",""))} · {escape(doc.get("phone",""))} '
+            f'(prefers {escape(doc.get("preferred_contact","")) or "any"})</p>'
+            f'<p style="color:#B0B0C3">Notes: {escape(doc.get("notes","") or "—")}</p>'
+            f'<p style="font-size:12px;color:#8E8EA8">Log in to your admin dashboard to review, price and approve this request.</p>'
+        )
+        try:
+            await send_email(to=OWNER_EMAIL, subject=f"[Garwood Glow] New quote request from {doc.get('name','a client')}", html=_email_shell(inner))
+        except Exception as e:
+            logger.warning(f"Owner alert email failed: {e}")
     return {"success": True, "id": doc["id"], "message": "Your Glow Quote™ request has been received."}
 
 
@@ -683,6 +703,27 @@ PAYPAL_SECRET = (os.environ.get("PAYPAL_SECRET") or "").strip()
 PAYPAL_BASE = "https://api-m.paypal.com" if PAYPAL_MODE == "live" else "https://api-m.sandbox.paypal.com"
 JMD_PER_USD = 158.0
 DEPOSIT_PCT = 0.5
+OWNER_EMAIL = os.environ.get("ADMIN_EMAIL", "")
+
+_jmd_cache = {"rate": JMD_PER_USD, "ts": 0.0}
+
+
+async def get_jmd_rate() -> float:
+    import time
+    now = time.time()
+    if now - _jmd_cache["ts"] < 21600 and _jmd_cache["ts"] > 0:
+        return _jmd_cache["rate"]
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get("https://open.er-api.com/v6/latest/USD")
+        resp.raise_for_status()
+        rate = float(resp.json()["rates"]["JMD"])
+        if rate > 0:
+            _jmd_cache["rate"] = round(rate, 2)
+            _jmd_cache["ts"] = now
+    except Exception as e:
+        logger.warning(f"JMD rate fetch failed, using {_jmd_cache['rate']}: {e}")
+    return _jmd_cache["rate"]
 
 
 def paypal_configured() -> bool:
@@ -702,7 +743,7 @@ def paypal_token() -> str:
 
 
 def _fmt_money(usd: float) -> str:
-    jmd = usd * JMD_PER_USD
+    jmd = usd * _jmd_cache["rate"]
     return f"USD ${usd:,.2f} (~JMD ${jmd:,.0f})"
 
 
@@ -710,6 +751,7 @@ class ApproveRequest(BaseModel):
     amount: float
     base_url: str = ""
     allow_deposit: bool = True
+    deposit_percent: float = 50.0
 
 
 class CaptureRequest(BaseModel):
@@ -728,11 +770,14 @@ async def approve_quote(quote_id: str, body: ApproveRequest, admin: dict = Depen
     q = await db.quotes.find_one({"id": quote_id})
     if not q:
         raise HTTPException(status_code=404, detail="Quote not found")
+    await get_jmd_rate()
     price = round(body.amount, 2)
+    dep_pct = min(99.0, max(1.0, body.deposit_percent)) / 100.0
     await db.quotes.update_one(
         {"id": quote_id},
         {"$set": {"status": "approved", "price": price, "currency": "USD",
-                  "allow_deposit": body.allow_deposit, "amount_paid": q.get("amount_paid", 0.0),
+                  "allow_deposit": body.allow_deposit, "deposit_pct": dep_pct,
+                  "amount_paid": q.get("amount_paid", 0.0),
                   "paid": False, "approved_at": now_iso()}},
     )
     base = _sanitize_base(body.base_url)
@@ -740,7 +785,7 @@ async def approve_quote(quote_id: str, body: ApproveRequest, admin: dict = Depen
         link = f"{base}/pay/{quote_id}"
         deposit_line = ""
         if body.allow_deposit:
-            deposit_line = f'<p style="color:#B0B0C3">You can pay a {int(DEPOSIT_PCT*100)}% deposit now and settle the balance after your clean, or pay in full.</p>'
+            deposit_line = f'<p style="color:#B0B0C3">You can pay a {int(dep_pct*100)}% deposit now and settle the balance after your clean, or pay in full.</p>'
         inner = (
             f'<h1 style="font-size:22px;margin:0 0 12px">Your Glow Quote&trade; is approved</h1>'
             f'<p style="color:#B0B0C3">Hi {escape(q.get("name","there").split(" ")[0])}, thank you for choosing Garwood Glow JA.</p>'
@@ -762,6 +807,8 @@ async def payment_summary(quote_id: str):
     price = q.get("price")
     paid_amt = round(q.get("amount_paid", 0.0), 2)
     remaining = round((price or 0) - paid_amt, 2) if price is not None else None
+    dep_pct = q.get("deposit_pct", DEPOSIT_PCT)
+    rate = await get_jmd_rate()
     return {
         "id": q["id"],
         "name": q.get("name", ""),
@@ -771,8 +818,9 @@ async def payment_summary(quote_id: str):
         "amount_paid": paid_amt,
         "remaining": remaining,
         "allow_deposit": bool(q.get("allow_deposit", True)),
-        "deposit_amount": round(price * DEPOSIT_PCT, 2) if price else None,
-        "jmd_rate": JMD_PER_USD,
+        "deposit_percent": round(dep_pct * 100),
+        "deposit_amount": round(price * dep_pct, 2) if price else None,
+        "jmd_rate": rate,
         "status": q.get("status"),
         "paid": bool(q.get("paid")),
     }
@@ -780,7 +828,8 @@ async def payment_summary(quote_id: str):
 
 @api_router.get("/paypal/config")
 async def paypal_config():
-    return {"configured": paypal_configured(), "client_id": PAYPAL_CLIENT_ID, "mode": PAYPAL_MODE, "jmd_rate": JMD_PER_USD}
+    rate = await get_jmd_rate()
+    return {"configured": paypal_configured(), "client_id": PAYPAL_CLIENT_ID, "mode": PAYPAL_MODE, "jmd_rate": rate}
 
 
 @api_router.post("/payments/{quote_id}/create-order")
@@ -797,8 +846,9 @@ async def create_payment_order(quote_id: str, mode: str = Query("full")):
     remaining = round(price - paid_amt, 2)
     if remaining <= 0:
         raise HTTPException(status_code=400, detail="This quote has already been paid in full.")
+    dep_pct = q.get("deposit_pct", DEPOSIT_PCT)
     if mode == "deposit" and paid_amt == 0 and q.get("allow_deposit", True):
-        charge = round(price * DEPOSIT_PCT, 2)
+        charge = round(price * dep_pct, 2)
     else:
         charge = remaining
     token = paypal_token()
@@ -850,9 +900,10 @@ async def capture_payment(quote_id: str, body: CaptureRequest):
             "capture_id": cap["id"], "amount": cap["amount"]["value"],
             "currency": cap["amount"]["currency_code"], "status": status, "created_at": now_iso(),
         })
+        await get_jmd_rate()
+        remaining = round(price - new_paid, 2)
         # Receipt email to client
         if q and q.get("email"):
-            remaining = round(price - new_paid, 2)
             if fully_paid:
                 bal_line = '<p style="color:#B0B0C3">Your payment is complete. Thank you!</p>'
             else:
@@ -864,6 +915,16 @@ async def capture_payment(quote_id: str, body: CaptureRequest):
                 f'<p style="font-size:12px;color:#8E8EA8">Receipt ID: {escape(cap["id"])}</p>'
             )
             await send_email(to=q["email"], subject="Your Garwood Glow JA payment receipt", html=_email_shell(inner))
+        # Owner alert on payment
+        if OWNER_EMAIL:
+            kind = "Full payment" if fully_paid else "Deposit"
+            inner = (
+                f'<h1 style="font-size:22px;margin:0 0 12px">💰 {kind} received</h1>'
+                f'<p style="color:#B0B0C3"><strong style="color:#fff">{escape(q.get("name",""))}</strong> just paid <strong style="color:#fff">{_fmt_money(captured)}</strong> for {escape(q.get("service") or "a cleaning service")}.</p>'
+                f'<p style="color:#B0B0C3">Total: {_fmt_money(price)}<br/>Paid so far: {_fmt_money(new_paid)}<br/>Balance: {_fmt_money(remaining)}</p>'
+                f'<p style="color:#B0B0C3">Contact: {escape(q.get("email",""))} · {escape(q.get("phone",""))}</p>'
+            )
+            await send_email(to=OWNER_EMAIL, subject=f"[Garwood Glow] {kind} received from {q.get('name','a client')}", html=_email_shell(inner))
     return {"status": status}
 
 

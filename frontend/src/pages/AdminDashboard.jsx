@@ -43,6 +43,7 @@ const AdminDashboard = () => {
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState("");
   const [allowDeposit, setAllowDeposit] = useState(true);
+  const [depositPct, setDepositPct] = useState(50);
   const JMD_RATE = 158;
 
   useEffect(() => {
@@ -90,7 +91,7 @@ const AdminDashboard = () => {
     const val = parseFloat(amount);
     if (!val || val <= 0) { toast.error("Enter a valid amount."); return; }
     try {
-      await api.post(`/quotes/${selected.id}/approve`, { amount: val, base_url: window.location.origin, allow_deposit: allowDeposit });
+      await api.post(`/quotes/${selected.id}/approve`, { amount: val, base_url: window.location.origin, allow_deposit: allowDeposit, deposit_percent: depositPct });
       toast.success(`Approved — USD $${val.toFixed(2)}. Pay Now link emailed to client.`);
       setAmount("");
       load();
@@ -253,8 +254,15 @@ const AdminDashboard = () => {
                   {amount > 0 && <div className="text-xs text-glow-soft mt-2" data-testid="jmd-preview">Client sees ~JMD ${Math.round(parseFloat(amount) * JMD_RATE).toLocaleString()}</div>}
                   <label className="flex items-center gap-2 mt-3 text-xs text-white/60 cursor-pointer" data-testid="allow-deposit-toggle">
                     <input type="checkbox" checked={allowDeposit} onChange={(e) => setAllowDeposit(e.target.checked)} className="accent-[#8B2FC9]" />
-                    Allow 50% deposit now, balance after the clean
+                    Allow a deposit now, balance after the clean
                   </label>
+                  {allowDeposit && (
+                    <div className="flex items-center gap-2 mt-2" data-testid="deposit-percent-row">
+                      <span className="text-xs text-white/50">Deposit</span>
+                      <input type="number" min="1" max="99" value={depositPct} onChange={(e) => setDepositPct(Math.min(99, Math.max(1, parseInt(e.target.value) || 0)))} data-testid="deposit-percent-input" className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white text-center focus:outline-none focus:border-glow-purple" />
+                      <span className="text-xs text-white/50">%{amount > 0 ? ` = USD $${(parseFloat(amount) * depositPct / 100).toFixed(2)}` : ""}</span>
+                    </div>
+                  )}
                   {selected.status === "deposit-paid" && (
                     <div className="text-xs text-amber-300 mt-2">Deposit received: USD ${Number(selected.amount_paid || 0).toFixed(2)} · Balance: USD ${(Number(selected.price) - Number(selected.amount_paid || 0)).toFixed(2)}</div>
                   )}

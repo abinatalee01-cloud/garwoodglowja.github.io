@@ -96,7 +96,7 @@ const PayPage = () => {
             <div className="grid grid-cols-2 gap-2.5 mt-5" data-testid="pay-mode-choice">
               <button onClick={() => setMode("deposit")} data-testid="pay-mode-deposit"
                 className={`rounded-xl border p-3 text-left transition-all ${mode === "deposit" ? "border-glow-purple bg-glow-purple/15" : "border-white/10 bg-white/[0.03] hover:border-white/25"}`}>
-                <div className="text-xs text-white/50">50% Deposit now</div>
+                <div className="text-xs text-white/50">{summary.deposit_percent}% Deposit now</div>
                 <div className="text-sm font-semibold text-white mt-0.5">{fmtUsd(summary.deposit_amount)}</div>
                 <div className="text-[11px] text-glow-soft">{fmtJmd(summary.deposit_amount, rate)}</div>
               </button>
