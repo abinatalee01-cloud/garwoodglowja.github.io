@@ -35,7 +35,7 @@ db = client[os.environ['DB_NAME']]
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("garwood-glow")
 
-app = FastAPI(title="Garwood Glow JA API")
+app = FastAPI(title="garwood-glow-Ja API")
 api_router = APIRouter(prefix="/api")
 
 # ---------------------------------------------------------------------------
